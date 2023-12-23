@@ -252,13 +252,11 @@ func PushWithTags(r *git.Repository) error {
 	})
 }
 
-func Apply() error {
-
-	modulesdir := "/Users/craig/Projects/github/azurerm-terraform-modules"
+func Apply(modulesDir string, authorName string, authorEmail string) error {
 
 	output.PrintlnfInfo("Apply here we go")
 
-	r, err := git.PlainOpen(modulesdir)
+	r, err := git.PlainOpen(modulesDir)
 	if err != nil {
 		output.PrintlnError(err)
 	}
@@ -284,7 +282,7 @@ func Apply() error {
 		}
 		fmt.Println("Latest Tag Contains: ", ltc)
 		patchVersion := 0
-		versionFromFile, _ := getVersion(path.Join(modulesdir, "modules", d))
+		versionFromFile, _ := getVersion(path.Join(modulesDir, "modules", d))
 		ns := d
 		if ltc != "" {
 			ltcSplit := strings.Split(ltc, "/")
@@ -302,5 +300,4 @@ func Apply() error {
 	}
 
 	return nil
-
 }
