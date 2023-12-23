@@ -16,7 +16,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// LatestTag returns the most recent tag on the repository.
+// latestStableTag returns the most recent tag on the repository.
 func latestStableTag(r *git.Repository) (string, error) {
 	tagRefs, err := r.Tags()
 	if err != nil {
@@ -124,13 +124,12 @@ func initalCommitHash(r *git.Repository) string {
 func getDiffRefs(r *git.Repository) (string, string) {
 	cb, err := branchName(r)
 	if err != nil {
-		fmt.Println(err)
+		return "", ""
 	}
 
 	lt, err := latestStableTag(r)
 	if err != nil {
-		fmt.Println("getDiffRefs:LatestTagError")
-		fmt.Println(err)
+		return "", ""
 	}
 	if lt == "" {
 		lt = initalCommitHash(r)
@@ -209,7 +208,6 @@ func getVersion(dir string) (string, error) {
 	}
 	defer file.Close()
 
-	// Read the file's contents
 	bytes, err := io.ReadAll(file)
 	if err != nil {
 		return "", err
