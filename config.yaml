@@ -1,0 +1,24 @@
+deploy:
+  credential:
+    - cred_GUPCOM
+  factory:
+    - '*'
+  pipeline:
+    - p_CDI-SFDC_CONTACT
+
+changes:
+  integrationRuntime:
+    - name: Lansing
+      patch:
+        properties:
+          typeProperties:
+            linkedInfo:
+              authorizationType: Rbac
+              resourceId: "/subscriptions/b362fbc7-82bd-4c39-b979-bea67f8e1178/resourcegroups/rg-ct-fat-weu-devgup/providers/Microsoft.DataFactory/factories/adf-ct-fat-weu-devgup/integrationruntimes/Lansing"
+  factory:
+    - name: adf-ct-fat-weu-devgup
+      patch:
+        properties:
+          globalParameters:
+            CRM_DB_PORT:
+              value: "1532"
