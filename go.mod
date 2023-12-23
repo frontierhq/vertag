@@ -1,10 +1,10 @@
-module github.com/frontierdigital/vertag
+module github.com/gofrontier-com/vertag
 
 go 1.20
 
 require (
-	github.com/frontierdigital/utils v0.0.10
 	github.com/go-git/go-git/v5 v5.11.0
+	github.com/gofrontier-com/go-utils v0.1.0
 	github.com/spf13/cobra v1.6.1
 	go.hein.dev/go-version v0.1.0
 )

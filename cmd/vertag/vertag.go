@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/frontierdigital/utils/output"
-	"github.com/frontierdigital/vertag/pkg/cmd/vertag"
+	"github.com/gofrontier-com/go-utils/output"
+	"github.com/gofrontier-com/vertag/pkg/cmd/vertag"
 )
 
 var (

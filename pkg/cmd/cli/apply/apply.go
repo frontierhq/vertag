@@ -3,7 +3,7 @@ package apply
 import (
 	"os"
 
-	"github.com/frontierdigital/vertag/pkg/cmd/app/apply"
+	"github.com/gofrontier-com/vertag/pkg/cmd/app/apply"
 	"github.com/spf13/cobra"
 )
 

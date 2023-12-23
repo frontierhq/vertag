@@ -1,8 +1,8 @@
 package vertag
 
 import (
-	"github.com/frontierdigital/vertag/pkg/cmd/cli/apply"
-	vers "github.com/frontierdigital/vertag/pkg/cmd/cli/version"
+	"github.com/gofrontier-com/vertag/pkg/cmd/cli/apply"
+	vers "github.com/gofrontier-com/vertag/pkg/cmd/cli/version"
 	"github.com/spf13/cobra"
 )
 

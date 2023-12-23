@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/frontierdigital/utils/output"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/gofrontier-com/go-utils/output"
 )
 
 // latestStableTag returns the most recent tag on the repository.
