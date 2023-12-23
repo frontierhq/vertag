@@ -27,6 +27,7 @@ func latestStableTag(r *git.Repository) (string, error) {
 	var latestTagName string
 	err = tagRefs.ForEach(func(tagRef *plumbing.Reference) error {
 		if strings.Contains(tagRef.Name().String(), "-unstable") {
+			fmt.Println("Skipping unstable tag: ", tagRef.Name().String())
 			return nil
 		}
 		revision := plumbing.Revision(tagRef.Name().String())
@@ -49,10 +50,13 @@ func latestStableTag(r *git.Repository) (string, error) {
 			latestTagCommit = commit
 			latestTagName = tagRef.Name().String()
 		}
+		fmt.Println(latestTagName)
+		fmt.Println(latestTagCommit)
 
 		return nil
 	})
 	if err != nil {
+		fmt.Println(err)
 		return "", err
 	}
 
