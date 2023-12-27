@@ -101,6 +101,16 @@ func latestTagContains(r *git.Repository, tagContains string) (string, error) {
 	return latestTagName, nil
 }
 
+func tagToSha(r *git.Repository, tag string) (string, error) {
+	revision := plumbing.Revision(tag)
+	tagCommitHash, err := r.ResolveRevision(revision)
+	if err != nil {
+		return "", err
+	}
+
+	return tagCommitHash.String(), nil
+}
+
 func branchName(r *git.Repository) (string, error) {
 
 	head, err := r.Head()
@@ -244,8 +254,11 @@ func createTag(r *git.Repository, tag string, authorName string, authorEmail str
 		Tagger:  tagger,
 		Message: tag,
 	})
+	if err != nil {
+		return err
+	}
 	output.PrintlnInfo("Created tag: ", tag)
-	return err
+	return nil
 }
 
 func pushWithTags(r *git.Repository) error {
@@ -292,14 +305,16 @@ func findNextTags(repo *git.Repository, dirschanged []string, modulesFullPath st
 func createTags(r *git.Repository, nextTags []string, dryRun bool, authorName string, authorEmail string) error {
 	for _, tag := range nextTags {
 		if dryRun {
-			fmt.Println("[Dry run] Would have created tag: ", tag)
+			output.Println("[Dry run] Would have created tag: ", tag)
 		} else {
 			err := createTag(r, tag, authorName, authorEmail)
 			if err != nil {
+				output.PrintlnError(err)
 				return err
 			}
 			err = pushWithTags(r)
 			if err != nil {
+				output.PrintlnError(err)
 				return err
 			}
 		}
@@ -319,7 +334,8 @@ func Apply(repoRoot string, modulesDir string, authorName string, authorEmail st
 	}
 
 	cb, lt := getDiffRefs(r)
-	output.PrintfInfo("Comparing\n\tCurrent Branch: %s\nto\n\tLatest Tag: %s\n\n", cb, lt)
+	ltsha, _ := tagToSha(r, lt)
+	output.PrintfInfo("Comparing\n\tCurrent Branch: %s\nto\n\tLatest Tagged SHA: %s\n\n", cb, ltsha)
 
 	fileschanged := changedFiles(r, lt)
 	dirschanged := changedDirs(fileschanged, modulesDir)
@@ -330,6 +346,9 @@ func Apply(repoRoot string, modulesDir string, authorName string, authorEmail st
 	output.PrintlnInfo("")
 
 	nextTags, err := findNextTags(r, dirschanged, path.Join(repoRoot, modulesDir))
+	if err != nil {
+		output.PrintlnError(err)
+	}
 
 	createTags(r, nextTags, dryRun, authorName, authorEmail)
 
