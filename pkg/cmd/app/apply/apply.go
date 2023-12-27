@@ -268,6 +268,14 @@ func pushWithTags(r *git.Repository) error {
 	})
 }
 
+func pushWithTagsTo(r *git.Repository, remoteName string) error {
+	rs := config.RefSpec("refs/tags/*:refs/tags/*")
+	return r.Push(&git.PushOptions{
+		RefSpecs:   []config.RefSpec{rs},
+		RemoteName: remoteName,
+	})
+}
+
 func findNextTags(repo *git.Repository, dirschanged []string, modulesFullPath string) ([]string, error) {
 	tags := make([]string, 0)
 
@@ -321,7 +329,7 @@ func createTags(r *git.Repository, nextTags []string, dryRun bool, authorName st
 				output.PrintlnError(err)
 				return err
 			}
-			err = pushWithTags(r)
+			err = pushWithTagsTo(r, "ci")
 			if err != nil {
 				output.PrintlnError(err)
 				return err
