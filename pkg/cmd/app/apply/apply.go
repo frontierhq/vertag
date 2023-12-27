@@ -302,11 +302,20 @@ func findNextTags(repo *git.Repository, dirschanged []string, modulesFullPath st
 	return tags, nil
 }
 
-func createTags(r *git.Repository, nextTags []string, dryRun bool, authorName string, authorEmail string) error {
+// AddRemove will add a named remote
+func addRemote(r *git.Repository, name string, url string) {
+	r.CreateRemote(&config.RemoteConfig{
+		Name: name,
+		URLs: []string{url},
+	})
+}
+
+func createTags(r *git.Repository, nextTags []string, dryRun bool, authorName string, authorEmail string, remoteUrl string) error {
 	for _, tag := range nextTags {
 		if dryRun {
 			output.Println("[Dry run] Would have created tag: ", tag)
 		} else {
+			addRemote(r, "ci", remoteUrl)
 			err := createTag(r, tag, authorName, authorEmail)
 			if err != nil {
 				output.PrintlnError(err)
@@ -323,7 +332,7 @@ func createTags(r *git.Repository, nextTags []string, dryRun bool, authorName st
 	return nil
 }
 
-func Apply(repoRoot string, modulesDir string, authorName string, authorEmail string, dryRun bool) error {
+func Apply(repoRoot string, modulesDir string, authorName string, authorEmail string, dryRun bool, remoteUrl string) error {
 
 	myFigure := figure.NewFigure("VerTag", "", true)
 	myFigure.Print()
@@ -350,7 +359,7 @@ func Apply(repoRoot string, modulesDir string, authorName string, authorEmail st
 		output.PrintlnError(err)
 	}
 
-	createTags(r, nextTags, dryRun, authorName, authorEmail)
+	createTags(r, nextTags, dryRun, authorName, authorEmail, remoteUrl)
 
 	return nil
 }

@@ -13,6 +13,7 @@ var (
 	repoRoot    string
 	authorName  string
 	authorEmail string
+	remoteUrl   string
 	dryRun      bool
 )
 
@@ -22,7 +23,7 @@ func NewCmdApply() *cobra.Command {
 		Use:   "apply",
 		Short: "Apply config",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			if err := apply.Apply(repoRoot, modulesDir, authorName, authorEmail, dryRun); err != nil {
+			if err := apply.Apply(repoRoot, modulesDir, authorName, authorEmail, dryRun, remoteUrl); err != nil {
 				return err
 			}
 
@@ -38,6 +39,7 @@ func NewCmdApply() *cobra.Command {
 	cmd.Flags().StringVarP(&repoRoot, "repo", "r", wd, "Root directory of the repo")
 	cmd.Flags().StringVarP(&authorName, "author-name", "n", wd, "Name of the commiter")
 	cmd.Flags().StringVarP(&authorEmail, "author-email", "e", wd, "Email of the commiter")
+	cmd.Flags().StringVarP(&remoteUrl, "remote-url", "u", "", "CI Remote URL")
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Email of the commiter")
 	return cmd
 }
