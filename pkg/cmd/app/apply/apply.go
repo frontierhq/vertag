@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/common-nighthawk/go-figure"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -27,7 +28,7 @@ func latestStableTag(r *git.Repository) (string, error) {
 	var latestTagName string
 	err = tagRefs.ForEach(func(tagRef *plumbing.Reference) error {
 		if strings.Contains(tagRef.Name().String(), "-unstable") {
-			fmt.Println("Skipping unstable tag: ", tagRef.Name().String())
+			// output.PrintlnInfo("Skipping unstable tag: ", tagRef.Name().String())
 			return nil
 		}
 		revision := plumbing.Revision(tagRef.Name().String())
@@ -50,13 +51,10 @@ func latestStableTag(r *git.Repository) (string, error) {
 			latestTagCommit = commit
 			latestTagName = tagRef.Name().String()
 		}
-		fmt.Println(latestTagName)
-		fmt.Println(latestTagCommit)
 
 		return nil
 	})
 	if err != nil {
-		fmt.Println(err)
 		return "", err
 	}
 
@@ -182,26 +180,28 @@ func changedFiles(r *git.Repository, latestTagOrHash string) []string {
 			fileschanged = removeFromSlice(fileschanged, f.Path())
 		}
 	}
-
 	return fileschanged
 }
 
-func changedDirs(filesChanged []string) []string {
+func changedDirs(filesChanged []string, modulesDir string) []string {
 	dirschanged := make([]string, 0)
 	for _, fc := range filesChanged {
-		a := strings.Split(fc, "/")
-		if len(a) > 2 { // make sure the changed file is of the form [azure resource-group main.tf]
-			inDirschanged := false
-			for _, dir := range dirschanged {
-				if dir == a[1] {
-					inDirschanged = true
+		if strings.HasPrefix(fc, modulesDir) {
+			a := strings.Split(fc, "/")
+			if len(a) > 2 { // make sure the changed file is of the form [azure resource-group main.tf]
+				inDirschanged := false
+				for _, dir := range dirschanged {
+					if dir == a[1] {
+						inDirschanged = true
+					}
 				}
-			}
-			if inDirschanged == false {
-				dirschanged = append(dirschanged, a[1])
+				if inDirschanged == false {
+					dirschanged = append(dirschanged, a[1])
+				}
 			}
 		}
 	}
+
 	return dirschanged
 }
 
@@ -226,13 +226,13 @@ func getTagSuffix(r *git.Repository) string {
 	if err != nil {
 		fmt.Println(err)
 	}
-	if cb != "main" && cb != "master" {
+	if cb != "refs/heads/main" && cb != "refs/heads/master" {
 		return "-unstable"
 	}
 	return ""
 }
 
-func Tag(r *git.Repository, tag string, authorName string, authorEmail string) error {
+func createTag(r *git.Repository, tag string, authorName string, authorEmail string) error {
 	headRef, _ := r.Head()
 	headHash := headRef.Hash()
 	tagger := &object.Signature{
@@ -244,62 +244,94 @@ func Tag(r *git.Repository, tag string, authorName string, authorEmail string) e
 		Tagger:  tagger,
 		Message: tag,
 	})
+	output.PrintlnInfo("Created tag: ", tag)
 	return err
 }
 
-func PushWithTags(r *git.Repository) error {
+func pushWithTags(r *git.Repository) error {
 	rs := config.RefSpec("refs/tags/*:refs/tags/*")
 	return r.Push(&git.PushOptions{
 		RefSpecs: []config.RefSpec{rs},
 	})
 }
 
-func Apply(modulesDir string, authorName string, authorEmail string) error {
-
-	output.PrintlnfInfo("Apply here we go")
-
-	r, err := git.PlainOpen(modulesDir)
-	if err != nil {
-		output.PrintlnError(err)
-	}
-
-	tagrefs, err := r.Tags()
-	err = tagrefs.ForEach(func(t *plumbing.Reference) error {
-		fmt.Println(t)
-		return nil
-	})
-
-	cb, lt := getDiffRefs(r)
-	fmt.Printf("Current Branch: %s\nLatest Tag: %s\n", cb, lt)
-
-	fileschanged := changedFiles(r, lt)
-	fmt.Println("Files changed: ", fileschanged)
-	dirschanged := changedDirs(fileschanged)
-	fmt.Println("Dirs changed: ", dirschanged)
+func findNextTags(repo *git.Repository, dirschanged []string, modulesFullPath string) ([]string, error) {
+	tags := make([]string, 0)
 
 	for _, d := range dirschanged {
-		ltc, err := latestTagContains(r, d)
+		ltc, err := latestTagContains(repo, d)
 		if err != nil {
 			output.PrintlnError(err)
 		}
-		fmt.Println("Latest Tag Contains: ", ltc)
+
 		patchVersion := 0
-		versionFromFile, _ := getVersion(path.Join(modulesDir, "modules", d))
+		versionFromFile, _ := getVersion(path.Join(modulesFullPath, d))
 		ns := d
 		if ltc != "" {
-			ltcSplit := strings.Split(ltc, "/")
+			ltcSplit := strings.Split(ltc, "/") // gives /refs/tags/<namespace>/<version>
 			ns = ltcSplit[2]
-			versionFromTag := ltcSplit[3]
-			latestPatch, _ := strconv.Atoi(strings.Split(ltcSplit[3], ".")[2])
+			versionFromTagSplit := strings.Split(ltcSplit[3], ".")
+			versionFromTag := versionFromTagSplit[0] + "." + versionFromTagSplit[1]
+			patchFromTagIncSuffix := versionFromTagSplit[2]
+			patchFromTag := strings.TrimSuffix(patchFromTagIncSuffix, "-unstable")
+			latestPatch, _ := strconv.Atoi(patchFromTag)
 			if versionFromFile == versionFromTag {
 				patchVersion = latestPatch + 1
 			} else {
 				patchVersion = 0
 			}
 		}
-		suffix := getTagSuffix(r)
-		fmt.Println("new tag: ", fmt.Sprintf("%s/%s.%d%s", ns, versionFromFile, patchVersion, suffix))
+
+		suffix := getTagSuffix(repo)
+		tags = append(tags, fmt.Sprintf("%s/%s.%d%s", ns, versionFromFile, patchVersion, suffix))
 	}
+
+	return tags, nil
+}
+
+func createTags(r *git.Repository, nextTags []string, dryRun bool, authorName string, authorEmail string) error {
+	for _, tag := range nextTags {
+		if dryRun {
+			fmt.Println("[Dry run] Would have created tag: ", tag)
+		} else {
+			err := createTag(r, tag, authorName, authorEmail)
+			if err != nil {
+				return err
+			}
+			err = pushWithTags(r)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func Apply(repoRoot string, modulesDir string, authorName string, authorEmail string, dryRun bool) error {
+
+	myFigure := figure.NewFigure("VerTag", "", true)
+	myFigure.Print()
+
+	r, err := git.PlainOpen(repoRoot)
+	if err != nil {
+		output.PrintlnError(err)
+	}
+
+	cb, lt := getDiffRefs(r)
+	output.PrintfInfo("Comparing\n\tCurrent Branch: %s\nto\n\tLatest Tag: %s\n\n", cb, lt)
+
+	fileschanged := changedFiles(r, lt)
+	dirschanged := changedDirs(fileschanged, modulesDir)
+	output.PrintlnInfo("Modules changed")
+	for _, d := range dirschanged {
+		output.PrintfInfo("\t%s\n", d)
+	}
+	output.PrintlnInfo("")
+
+	nextTags, err := findNextTags(r, dirschanged, path.Join(repoRoot, modulesDir))
+
+	createTags(r, nextTags, dryRun, authorName, authorEmail)
 
 	return nil
 }

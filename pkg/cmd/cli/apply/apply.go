@@ -2,15 +2,18 @@ package apply
 
 import (
 	"os"
+	"path"
 
 	"github.com/gofrontier-com/vertag/pkg/cmd/app/apply"
 	"github.com/spf13/cobra"
 )
 
 var (
-	modulesRoot string
+	modulesDir  string
+	repoRoot    string
 	authorName  string
 	authorEmail string
+	dryRun      bool
 )
 
 // NewCmdApply creates a command to apply config
@@ -19,7 +22,7 @@ func NewCmdApply() *cobra.Command {
 		Use:   "apply",
 		Short: "Apply config",
 		RunE: func(_ *cobra.Command, _ []string) error {
-			if err := apply.Apply(modulesRoot, authorName, authorEmail); err != nil {
+			if err := apply.Apply(repoRoot, modulesDir, authorName, authorEmail, dryRun); err != nil {
 				return err
 			}
 
@@ -31,8 +34,10 @@ func NewCmdApply() *cobra.Command {
 		panic(err)
 	}
 
-	cmd.Flags().StringVarP(&modulesRoot, "modules-dir", "m", wd, "Root directory for modules")
+	cmd.Flags().StringVarP(&modulesDir, "modules-dir", "m", path.Join(wd, "modules"), "Directory of the modules")
+	cmd.Flags().StringVarP(&repoRoot, "repo", "r", wd, "Root directory of the repo")
 	cmd.Flags().StringVarP(&authorName, "author-name", "n", wd, "Name of the commiter")
 	cmd.Flags().StringVarP(&authorEmail, "author-email", "e", wd, "Email of the commiter")
+	cmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Email of the commiter")
 	return cmd
 }
