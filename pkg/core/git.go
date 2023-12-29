@@ -79,7 +79,7 @@ func (r *GitRepo) branchName() (string, error) {
 	return head.Name().String(), nil
 }
 
-func (r *GitRepo) initalCommitHash() string {
+func (r *GitRepo) initialCommitHash() string {
 	commits, _ := r.Repo.CommitObjects()
 	var initialHash plumbing.Hash
 	_ = commits.ForEach(func(c *object.Commit) error {

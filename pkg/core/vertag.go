@@ -44,7 +44,6 @@ func (v *Vertag) Init() error {
 func (v *Vertag) GetLatestStableTag() error {
 	tagRefs, err := v.Repo.Repo.Tags()
 	if err != nil {
-		v.LatestStableSHA = v.Repo.initalCommitHash()
 		return err
 	}
 
@@ -83,7 +82,11 @@ func (v *Vertag) GetLatestStableTag() error {
 	}
 
 	v.LatestStableTag = latestTagName
-	v.LatestStableSHA = latestTagCommit.Hash.String()
+	if latestTagCommit == nil {
+		v.LatestStableSHA = v.Repo.initialCommitHash()
+	} else {
+		v.LatestStableSHA = latestTagCommit.Hash.String()
+	}
 	return nil
 }
 
