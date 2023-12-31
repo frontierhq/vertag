@@ -90,6 +90,55 @@ func (v *Vertag) GetLatestStableTag() error {
 	return nil
 }
 
+func (v *Vertag) latestTagContains(tagContains string) error {
+	tagRefs, err := v.Repo.Repo.Tags()
+	if err != nil {
+		return err
+	}
+
+	var latestTagCommit *object.Commit
+	var latestTagName string
+	err = tagRefs.ForEach(func(tagRef *plumbing.Reference) error {
+		if strings.Contains(tagRef.Name().String(), tagContains) {
+			revision := plumbing.Revision(tagRef.Name().String())
+			tagCommitHash, err := v.Repo.Repo.ResolveRevision(revision)
+			if err != nil {
+				return err
+			}
+
+			commit, err := v.Repo.Repo.CommitObject(*tagCommitHash)
+			if err != nil {
+				return err
+			}
+
+			if latestTagCommit == nil {
+				latestTagCommit = commit
+				latestTagName = tagRef.Name().String()
+			}
+
+			if commit.Committer.When.After(latestTagCommit.Committer.When) {
+				latestTagCommit = commit
+				latestTagName = tagRef.Name().String()
+			}
+
+			if commit.Committer.When.Equal(latestTagCommit.Committer.When) {
+				if !strings.Contains(tagRef.Name().String(), "-unstable") {
+					latestTagCommit = commit
+					latestTagName = tagRef.Name().String()
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	v.LatestTag = latestTagName
+
+	return nil
+}
+
 func (v *Vertag) GetRefs() error {
 	err := v.getDiffRefs()
 	if err != nil {
@@ -132,7 +181,7 @@ func (v *Vertag) CalculateNextTags() error {
 	tags := make([]string, 0)
 
 	for _, d := range v.ModulesChanged {
-		ltc, err := v.Repo.latestTagContains(d)
+		err := v.latestTagContains(d)
 		if err != nil {
 			output.PrintlnError(err)
 		}
@@ -140,8 +189,9 @@ func (v *Vertag) CalculateNextTags() error {
 		patchVersion := 0
 		versionFromFile, _ := getVersion(path.Join(v.ModulesFullPath, d))
 		ns := d
-		if ltc != "" {
-			ltcSplit := strings.Split(ltc, "/") // gives /refs/tags/<namespace>/<version>
+
+		if v.LatestTag != "" {
+			ltcSplit := strings.Split(v.LatestTag, "/") // gives /refs/tags/<namespace>/<version>
 			ns = ltcSplit[2]
 			versionFromTagSplit := strings.Split(ltcSplit[3], ".")
 			versionFromTag := versionFromTagSplit[0] + "." + versionFromTagSplit[1]

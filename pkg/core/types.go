@@ -12,6 +12,7 @@ type Vertag struct {
 	DryRun          bool
 	LatestStableTag string
 	LatestStableSHA string
+	LatestTag       string
 	CurrentBranch   string
 	ModulesChanged  []string
 	NextTags        []string

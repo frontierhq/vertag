@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -108,46 +107,6 @@ func (r *GitRepo) changedFiles(latestTagOrHash string) []string {
 		}
 	}
 	return fileschanged
-}
-
-func (r *GitRepo) latestTagContains(tagContains string) (string, error) {
-	tagRefs, err := r.Repo.Tags()
-	if err != nil {
-		return "", err
-	}
-
-	var latestTagCommit *object.Commit
-	var latestTagName string
-	err = tagRefs.ForEach(func(tagRef *plumbing.Reference) error {
-		if strings.Contains(tagRef.Name().String(), tagContains) {
-			revision := plumbing.Revision(tagRef.Name().String())
-			tagCommitHash, err := r.Repo.ResolveRevision(revision)
-			if err != nil {
-				return err
-			}
-
-			commit, err := r.Repo.CommitObject(*tagCommitHash)
-			if err != nil {
-				return err
-			}
-
-			if latestTagCommit == nil {
-				latestTagCommit = commit
-				latestTagName = tagRef.Name().String()
-			}
-
-			if commit.Committer.When.After(latestTagCommit.Committer.When) {
-				latestTagCommit = commit
-				latestTagName = tagRef.Name().String()
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return "", err
-	}
-
-	return latestTagName, nil
 }
 
 func (r *GitRepo) getTagSuffix() string {
