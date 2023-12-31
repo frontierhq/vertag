@@ -215,21 +215,35 @@ func (v *Vertag) CalculateNextTags() error {
 }
 
 func (v *Vertag) WriteTags() error {
+	if len(v.NextTags) == 0 {
+		output.PrintlnInfo("No tags to write and push")
+		return nil
+	}
+
 	for _, tag := range v.NextTags {
 		if v.DryRun {
 			output.Println("[Dry run] Would have created tag: ", tag)
 		} else {
-			v.Repo.AddRemote("ci", v.Repo.RemoteUrl)
 			err := v.Repo.CreateTag(tag)
 			if err != nil {
 				output.PrintlnError(err)
 				return err
 			}
-			err = v.Repo.PushWithTagsTo("ci")
-			if err != nil {
-				output.PrintlnError(err)
-				return err
-			}
+		}
+	}
+
+	if v.Repo.RemoteUrl != "" {
+		v.Repo.AddRemote("ci", v.Repo.RemoteUrl)
+		err := v.Repo.PushWithTagsTo("ci")
+		if err != nil {
+			output.PrintlnError(err)
+			return err
+		}
+	} else {
+		err := v.Repo.PushWithTags()
+		if err != nil {
+			output.PrintlnError(err)
+			return err
 		}
 	}
 
