@@ -226,7 +226,6 @@ func (v *Vertag) WriteTags() error {
 		} else {
 			err := v.Repo.CreateTag(tag)
 			if err != nil {
-				output.PrintlnError(err)
 				return err
 			}
 		}
@@ -236,13 +235,11 @@ func (v *Vertag) WriteTags() error {
 		v.Repo.AddRemote("ci", v.Repo.RemoteUrl)
 		err := v.Repo.PushWithTagsTo("ci")
 		if err != nil {
-			output.PrintlnError(err)
 			return err
 		}
 	} else {
 		err := v.Repo.PushWithTags()
 		if err != nil {
-			output.PrintlnError(err)
 			return err
 		}
 	}
