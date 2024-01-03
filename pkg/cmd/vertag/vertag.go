@@ -65,7 +65,7 @@ func Apply(repoRoot string, modulesDir string, authorName string, authorEmail st
 func NewRootCmd(version string, commit string, date string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "vertag",
-		Short: "vertag is the command line tool for vertag",
+		Short: "Vertag is the command line tool for managing terraform modules versioning",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if help {
 				if err := cmd.Help(); err != nil {
