@@ -17,20 +17,12 @@ are stored in the same repository.
 About
 -----
 
-~~~~~~~
-Vertag
-~~~~~~~
-
 Vertag has been built to assist with the management of terraform modules that are stored in the same
 repository. It is designed to be used as part of a CI/CD pipeline.
 
 --------
 Download
 --------
-
-~~~~~~~
-Release
-~~~~~~~
 
 Binaries and packages of the latest stable release are available at `https://github.com/gofrontier-com/vertag/releases <https://github.com/gofrontier-com/vertag/releases>`_.
 
@@ -57,3 +49,9 @@ Usage
     -r, --repo string           Root directory of the repo
     -s, --short                 Print just the version number
     -v, --version               Version
+
+------------
+Contributing
+------------
+
+We welcome contributions to this repository. Please see `CONTRIBUTING.md <https://github.com/gofrontier-com/vertag/tree/main/CONTRIBUTING.md>`_ for more information.
