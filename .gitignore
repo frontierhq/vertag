@@ -1,0 +1,9 @@
+# ide
+.env
+.vscode
+
+# go
+/vertag
+
+# other
+dist/
