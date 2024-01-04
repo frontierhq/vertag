@@ -167,7 +167,7 @@ func (v *Vertag) getDiffRefs() error {
 
 func (v *Vertag) GetChanges() error {
 	fileschanged := v.Repo.changedFiles(v.LatestStableSHA)
-	dirschanged := changedDirs(fileschanged, v.ModulesDir)
+	dirschanged := changedDirs(fileschanged, v.ModulesDir, v.ModulesFullPath)
 	output.PrintlnInfo("Modules changed")
 	for _, d := range dirschanged {
 		output.PrintfInfo("\t%s\n", d)
@@ -231,16 +231,18 @@ func (v *Vertag) WriteTags() error {
 		}
 	}
 
-	if v.Repo.RemoteUrl != "" {
-		v.Repo.AddRemote("ci", v.Repo.RemoteUrl)
-		err := v.Repo.PushWithTagsTo("ci")
-		if err != nil {
-			return err
-		}
-	} else {
-		err := v.Repo.PushWithTags()
-		if err != nil {
-			return err
+	if !v.DryRun {
+		if v.Repo.RemoteUrl != "" {
+			v.Repo.AddRemote("ci", v.Repo.RemoteUrl)
+			err := v.Repo.PushWithTagsTo("ci")
+			if err != nil {
+				return err
+			}
+		} else {
+			err := v.Repo.PushWithTags()
+			if err != nil {
+				return err
+			}
 		}
 	}
 

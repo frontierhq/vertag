@@ -16,19 +16,24 @@ func removeFromSlice(s []string, r string) []string {
 	return s
 }
 
-func changedDirs(filesChanged []string, modulesDir string) []string {
+func changedDirs(filesChanged []string, modulesDir string, modulesPath string) []string {
 	dirschanged := make([]string, 0)
 	for _, fc := range filesChanged {
 		if strings.HasPrefix(fc, modulesDir) {
 			a := strings.Split(fc, "/")
 			if len(a) > 2 { // make sure the changed file is of the form [azure resource-group main.tf]
+				dirExists := true
+				_, err := os.Stat(path.Join(modulesPath, a[1]))
+				if os.IsNotExist(err) {
+					dirExists = false
+				}
 				inDirschanged := false
 				for _, dir := range dirschanged {
 					if dir == a[1] {
 						inDirschanged = true
 					}
 				}
-				if inDirschanged == false {
+				if inDirschanged == false && dirExists == true {
 					dirschanged = append(dirschanged, a[1])
 				}
 			}
