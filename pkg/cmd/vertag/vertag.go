@@ -22,13 +22,14 @@ var (
 	dryRun      bool
 	vers        bool
 	help        bool
+	branchDiff  bool
 )
 
 func Apply(repoRoot string, modulesDir string, authorName string, authorEmail string, dryRun bool, remoteUrl string) error {
 	myFigure := figure.NewFigure("VerTag", "", true)
 	myFigure.Print()
 
-	vt := core.NewVertag(repoRoot, modulesDir, authorName, authorEmail, dryRun, remoteUrl)
+	vt := core.NewVertag(repoRoot, modulesDir, authorName, authorEmail, dryRun, remoteUrl, branchDiff)
 	err := vt.Init()
 	if err != nil {
 		output.PrintlnError(err)
@@ -100,9 +101,10 @@ func NewRootCmd(version string, commit string, date string) *cobra.Command {
 	cmd.Flags().StringVarP(&remoteUrl, "remote-url", "u", "", "CI Remote URL")
 	cmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Email of the commiter")
 	cmd.Flags().BoolVarP(&vers, "version", "v", false, "Version")
-	cmd.Flags().BoolVarP(&shortened, "short", "s", false, "Print just the version number")
-	cmd.Flags().StringVarP(&outputFmt, "output", "o", "json", "Output format")
+	cmd.Flags().BoolVarP(&shortened, "version-short", "s", false, "Print just the version number")
+	cmd.Flags().StringVarP(&outputFmt, "version-output", "o", "json", "Output format")
 	cmd.Flags().BoolVarP(&help, "help", "h", false, "Version")
+	cmd.Flags().BoolVarP(&branchDiff, "branch-diff", "b", false, "When on a branch, compare with tags on the branch rather than the default branch")
 
 	return cmd
 }

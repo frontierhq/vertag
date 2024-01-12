@@ -12,7 +12,7 @@ import (
 	"github.com/gofrontier-com/go-utils/output"
 )
 
-func NewVertag(repoRoot string, modulesDir string, authorName string, authorEmail string, dryRun bool, remoteUrl string) *Vertag {
+func NewVertag(repoRoot string, modulesDir string, authorName string, authorEmail string, dryRun bool, remoteUrl string, branchDiff bool) *Vertag {
 	r := &GitRepo{
 		Author: &GitAuthor{
 			Name:  authorName,
@@ -27,6 +27,7 @@ func NewVertag(repoRoot string, modulesDir string, authorName string, authorEmai
 		ModulesDir:      modulesDir,
 		ModulesFullPath: path.Join(repoRoot, modulesDir),
 		DryRun:          dryRun,
+		BranchDiff:      branchDiff,
 	}
 }
 
@@ -87,6 +88,7 @@ func (v *Vertag) GetLatestStableTag() error {
 	} else {
 		v.LatestStableSHA = latestTagCommit.Hash.String()
 	}
+	v.ComparisonSHA = v.LatestStableSHA
 	return nil
 }
 
@@ -99,7 +101,8 @@ func (v *Vertag) latestTagContains(tagContains string) error {
 	var latestTagCommit *object.Commit
 	var latestTagName string
 	err = tagRefs.ForEach(func(tagRef *plumbing.Reference) error {
-		if strings.Contains(tagRef.Name().String(), tagContains) {
+		moduleName := strings.Split(tagRef.Name().String(), "/")[2]
+		if moduleName == tagContains {
 			revision := plumbing.Revision(tagRef.Name().String())
 			tagCommitHash, err := v.Repo.Repo.ResolveRevision(revision)
 			if err != nil {
@@ -139,13 +142,66 @@ func (v *Vertag) latestTagContains(tagContains string) error {
 	return nil
 }
 
+func (v *Vertag) GetLatestBranchUnstableTag() error {
+	tagRefs, err := v.Repo.Repo.Tags()
+	if err != nil {
+		return err
+	}
+
+	head, err := v.Repo.Repo.Head()
+	if err != nil {
+		return err
+	}
+	currentCommit, err := v.Repo.Repo.CommitObject(head.Hash())
+	if err != nil {
+		return err
+	}
+
+	tagRefMap := make(map[string]string)
+	err = tagRefs.ForEach(func(tagRef *plumbing.Reference) error {
+		tagRefMap[tagRef.Name().String()] = tagRef.Hash().String()
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	for {
+		found := false
+		for tagRefName, tagRefHash := range tagRefMap {
+			fmt.Println(tagRefName, tagRefHash, currentCommit.Hash.String())
+			if strings.Contains(tagRefName, "-unstable") {
+				if tagRefHash == currentCommit.Hash.String() {
+					found = true
+				}
+			}
+		}
+		if err != nil {
+			return err
+		}
+
+		if found {
+			v.LatestBranchUnstableSHA = currentCommit.Hash.String()
+			v.ComparisonSHA = v.LatestBranchUnstableSHA
+			break
+		}
+
+		currentCommit, err = currentCommit.Parents().Next()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (v *Vertag) GetRefs() error {
 	err := v.getDiffRefs()
 	if err != nil {
 		return err
 	}
 
-	output.PrintfInfo("Comparing\n\tCurrent Branch: %s\nto\n\tLatest Tagged SHA: %s\n\n", v.CurrentBranch, v.LatestStableSHA)
+	output.PrintfInfo("Comparing\n\tCurrent Branch: %s\nto\n\tLatest Tagged SHA: %s\n\n", v.CurrentBranch, v.ComparisonSHA)
 
 	return nil
 }
@@ -162,11 +218,15 @@ func (v *Vertag) getDiffRefs() error {
 		return err
 	}
 
+	if v.BranchDiff {
+		err = v.GetLatestBranchUnstableTag()
+	}
+
 	return nil
 }
 
 func (v *Vertag) GetChanges() error {
-	fileschanged := v.Repo.changedFiles(v.LatestStableSHA)
+	fileschanged := v.Repo.changedFiles(v.ComparisonSHA)
 	dirschanged := changedDirs(fileschanged, v.ModulesDir, v.ModulesFullPath)
 	output.PrintlnInfo("Modules changed")
 	for _, d := range dirschanged {
