@@ -280,26 +280,26 @@ func (v *Vertag) WriteTags() error {
 		return nil
 	}
 
+	if v.Repo.RemoteUrl != "" {
+		v.Repo.AddRemote("ci", v.Repo.RemoteUrl)
+	}
+
 	for _, tag := range v.NextTags {
 		if v.DryRun {
 			output.Println("[Dry run] Would have created tag: ", tag)
 		} else {
 			err := v.Repo.CreateTag(tag)
-			if err != nil {
-				return err
+			if v.Repo.RemoteUrl != "" {
+				err := v.Repo.PushWithTagsTo("ci")
+				if err != nil {
+					return err
+				}
+			} else {
+				err := v.Repo.PushWithTags()
+				if err != nil {
+					return err
+				}
 			}
-		}
-	}
-
-	if !v.DryRun {
-		if v.Repo.RemoteUrl != "" {
-			v.Repo.AddRemote("ci", v.Repo.RemoteUrl)
-			err := v.Repo.PushWithTagsTo("ci")
-			if err != nil {
-				return err
-			}
-		} else {
-			err := v.Repo.PushWithTags()
 			if err != nil {
 				return err
 			}
