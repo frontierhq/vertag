@@ -99,13 +99,6 @@ func (r *GitRepo) changedFiles(latestTagOrHash string) []string {
 		fileschanged = append(fileschanged, stat.Name)
 	}
 
-	fps := diff.FilePatches()
-	for _, fp := range fps {
-		f, t := fp.Files()
-		if t == nil {
-			fileschanged = removeFromSlice(fileschanged, f.Path())
-		}
-	}
 	return fileschanged
 }
 
