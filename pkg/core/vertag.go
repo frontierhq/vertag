@@ -227,10 +227,7 @@ func (v *Vertag) getDiffRefs() error {
 
 func (v *Vertag) GetChanges() error {
 	fileschanged := v.Repo.changedFiles(v.ComparisonSHA)
-<<<<<<< HEAD
-=======
 	output.PrintlnInfo("Files changed", fileschanged)
->>>>>>> debug
 	dirschanged := changedDirs(fileschanged, v.ModulesDir, v.ModulesFullPath)
 	output.PrintlnInfo("Modules changed")
 	for _, d := range dirschanged {
