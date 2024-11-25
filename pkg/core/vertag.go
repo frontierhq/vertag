@@ -227,6 +227,7 @@ func (v *Vertag) getDiffRefs() error {
 
 func (v *Vertag) GetChanges() error {
 	fileschanged := v.Repo.changedFiles(v.ComparisonSHA)
+	output.PrintlnInfo("Files changed", fileschanged)
 	dirschanged := changedDirs(fileschanged, v.ModulesDir, v.ModulesFullPath)
 	output.PrintlnInfo("Modules changed")
 	for _, d := range dirschanged {
@@ -289,6 +290,11 @@ func (v *Vertag) WriteTags() error {
 			output.Println("[Dry run] Would have created tag: ", tag)
 		} else {
 			err := v.Repo.CreateTag(tag)
+			if err != nil {
+				output.PrintfError("Error creating tag: %s\n", tag)
+				output.PrintlnError(err)
+				return err
+			}
 			if v.Repo.RemoteUrl != "" {
 				err := v.Repo.PushWithTagsTo("ci")
 				if err != nil {
@@ -299,9 +305,6 @@ func (v *Vertag) WriteTags() error {
 				if err != nil {
 					return err
 				}
-			}
-			if err != nil {
-				return err
 			}
 		}
 	}
