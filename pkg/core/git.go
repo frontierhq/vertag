@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -28,7 +29,10 @@ func (r *GitRepo) PushWithTags() error {
 
 func (r *GitRepo) PushWithTagsTo(remoteName string) error {
 	rs := config.RefSpec("refs/tags/*:refs/tags/*")
-	return r.Repo.Push(&git.PushOptions{
+	output.Printf("Pushing tags to remote: %s\n", remoteName)
+	output.Printf("RefSpec: %s\n", rs)
+	ctx := context.Background()
+	return r.Repo.PushContext(ctx, &git.PushOptions{
 		RefSpecs:   []config.RefSpec{rs},
 		RemoteName: remoteName,
 	})
