@@ -41,6 +41,36 @@ func (v *Vertag) Init() error {
 	return nil
 }
 
+func compareVersions(tag1, tag2 string) bool {
+	// Extract version numbers and stability flag
+	parts1 := strings.Split(tag1, "/")
+	parts2 := strings.Split(tag2, "/")
+
+	version1 := strings.Split(parts1[len(parts1)-1], "-")[0] // "1.1.9"
+	version2 := strings.Split(parts2[len(parts2)-1], "-")[0] // "1.1.10"
+
+	isUnstable1 := strings.HasSuffix(parts1[len(parts1)-1], "-unstable")
+	isUnstable2 := strings.HasSuffix(parts2[len(parts2)-1], "-unstable")
+
+	// If stability differs, stable version is greater
+	if isUnstable1 != isUnstable2 {
+		return isUnstable1 && !isUnstable2
+	}
+
+	// Compare version numbers
+	v1 := strings.Split(version1, ".")
+	v2 := strings.Split(version2, ".")
+
+	for i := 0; i < 3; i++ {
+		num1, _ := strconv.Atoi(v1[i])
+		num2, _ := strconv.Atoi(v2[i])
+		if num1 != num2 {
+			return num1 < num2
+		}
+	}
+	return false
+}
+
 // GetLatestStableTag returns the most recent tag on the repository.
 func (v *Vertag) GetLatestStableTag() error {
 	tagRefs, err := v.Repo.Repo.Tags()
@@ -71,7 +101,12 @@ func (v *Vertag) GetLatestStableTag() error {
 			latestTagName = tagRef.Name().String()
 		}
 
-		if commit.Committer.When.After(latestTagCommit.Committer.When) {
+		if commit.Committer.When.Equal(latestTagCommit.Committer.When) {
+			if compareVersions(latestTagName, tagRef.Name().String()) {
+				latestTagCommit = commit
+				latestTagName = tagRef.Name().String()
+			}
+		} else if commit.Committer.When.After(latestTagCommit.Committer.When) {
 			latestTagCommit = commit
 			latestTagName = tagRef.Name().String()
 		}
@@ -113,13 +148,19 @@ func (v *Vertag) latestTagContains(tagContains string) error {
 			if err != nil {
 				return err
 			}
+			output.PrintlnInfo("Checking tag", tagRef.Name().String(), "for module", tagContains, "date:", commit.Committer.When)
 
 			if latestTagCommit == nil {
 				latestTagCommit = commit
 				latestTagName = tagRef.Name().String()
 			}
 
-			if commit.Committer.When.After(latestTagCommit.Committer.When) {
+			if commit.Committer.When.Equal(latestTagCommit.Committer.When) {
+				if compareVersions(latestTagName, tagRef.Name().String()) {
+					latestTagCommit = commit
+					latestTagName = tagRef.Name().String()
+				}
+			} else if commit.Committer.When.After(latestTagCommit.Committer.When) {
 				latestTagCommit = commit
 				latestTagName = tagRef.Name().String()
 			}
@@ -136,6 +177,7 @@ func (v *Vertag) latestTagContains(tagContains string) error {
 	if err != nil {
 		return err
 	}
+	output.PrintlnInfo("Latest tag for module", tagContains, "is", latestTagName)
 
 	v.LatestTag = latestTagName
 
@@ -227,6 +269,7 @@ func (v *Vertag) getDiffRefs() error {
 
 func (v *Vertag) GetChanges() error {
 	fileschanged := v.Repo.changedFiles(v.ComparisonSHA)
+	output.PrintlnInfo("Files changed", fileschanged)
 	dirschanged := changedDirs(fileschanged, v.ModulesDir, v.ModulesFullPath)
 	output.PrintlnInfo("Modules changed")
 	for _, d := range dirschanged {
@@ -289,19 +332,18 @@ func (v *Vertag) WriteTags() error {
 			output.Println("[Dry run] Would have created tag: ", tag)
 		} else {
 			err := v.Repo.CreateTag(tag)
+			if err != nil {
+				return fmt.Errorf("failed to create tag %s: %w", tag, err)
+			}
+
 			if v.Repo.RemoteUrl != "" {
-				err := v.Repo.PushWithTagsTo("ci")
-				if err != nil {
-					return err
+				if err := v.Repo.PushWithTagsTo("ci"); err != nil {
+					return fmt.Errorf("failed to push tags to remote 'ci': %w", err)
 				}
 			} else {
-				err := v.Repo.PushWithTags()
-				if err != nil {
-					return err
+				if err := v.Repo.PushWithTags(); err != nil {
+					return fmt.Errorf("failed to push tags: %w", err)
 				}
-			}
-			if err != nil {
-				return err
 			}
 		}
 	}

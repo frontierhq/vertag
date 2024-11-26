@@ -4,7 +4,10 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
+
+	"github.com/gofrontier-com/go-utils/output"
 )
 
 func removeFromSlice(s []string, r string) []string {
@@ -19,7 +22,12 @@ func removeFromSlice(s []string, r string) []string {
 func changedDirs(filesChanged []string, modulesDir string, modulesPath string) []string {
 	dirschanged := make([]string, 0)
 	for _, fc := range filesChanged {
-		if strings.HasPrefix(fc, modulesDir) {
+		output.PrintlnInfo(fc, modulesDir, strings.HasPrefix(fc, modulesDir))
+
+		fcabs, _ := filepath.Abs(fc)
+		modulesDirAbs, _ := filepath.Abs(modulesDir)
+		output.PrintlnInfo(fcabs, modulesDirAbs)
+		if strings.HasPrefix(fcabs, modulesDirAbs) {
 			a := strings.Split(fc, "/")
 			if len(a) > 2 { // make sure the changed file is of the form [azure resource-group main.tf]
 				dirExists := true
